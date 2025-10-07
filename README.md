@@ -6,8 +6,6 @@ A web-based tool that automatically analyzes and refactors Python code using AST
 
 **Try it now:** [https://code-refactor-tool-production.up.railway.app](https://code-refactor-tool-production.up.railway.app) 
 
-code-refactor-tool-production.up.railway.app
-
 ## ✨ Features
 
 - **🔍 AST-Based Analysis** - Deep code analysis using Python's Abstract Syntax Trees
