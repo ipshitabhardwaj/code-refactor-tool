@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Code Refactor Tool</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 95vw;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .samples-panel {
+            background: #34495e;
+            padding: 12px 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .samples-panel select, .samples-panel button {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: none;
+            background: white;
+            color: #2c3e50;
+            font-size: 0.9em;
+        }
+
+        .keyboard-hints {
+            background: #e3f2fd;
+            padding: 8px 20px;
+            border-bottom: 1px solid #bbdefb;
+            font-size: 0.85em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 500px;
+        }
+
+        .editor-section, .results-section {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .editor-section {
+            background: #f8f9fa;
+            border-right: 2px solid #e9ecef;
+        }
+
+        .results-section {
+            background: white;
+            overflow: hidden;
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .code-editor-container {
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            background: #1e1e1e;
+            flex: 1;
+            min-height: 200px;
+            max-height: 300px;
+        }
+
+        .code-editor-container pre[class*="language-"] {
+            margin: 0;
+            border-radius: 0;
+            height: 100%;
+            overflow: auto;
+            max-height: 100%;
+        }
+
+        .code-editor-container code[class*="language-"] {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            padding: 12px;
+            display: block;
+            height: 100%;
+            overflow: auto;
+        }
+
+        .options-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border: 1px solid #e9ecef;
+        }
+
+        .option-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+            font-size: 0.9em;
+        }
+
+        .option-label:hover {
+            background: #f8f9fa;
+        }
+
+        .option-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+
+        .refactor-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .refactor-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .refactor-btn:active {
+            transform: translateY(0);
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .view-toggle button {
+            padding: 6px 12px;
+            border: 1px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85em;
+        }
+
+        .view-toggle button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .diff-container {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex: 1;
+            min-height: 200px;
+            max-height: 300px;
+        }
+
+        .diff-column {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .diff-column h3 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .result-code {
+            background: #1e1e1e;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            flex: 1;
+            min-height: 150px;
+            max-height: 250px;
+            overflow: hidden;
+        }
+
+        .result-code pre[class*="language-"] {
+            margin: 0;
+            border-radius: 0;
+            height: 100%;
+            overflow: auto;
+            max-height: 100%;
+        }
+
+        .single-view {
+            margin-bottom: 15px;
+            flex: 1;
+            min-height: 200px;
+            max-height: 300px;
+        }
+
+        .changes-section, .suggestions-section {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .change-item, .suggestion-item {
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 4px;
+            border-left: 3px solid;
+            font-size: 0.85em;
+            line-height: 1.3;
+        }
+
+        .change-item {
+            background: #e8f4fd;
+            border-left-color: #2196F3;
+        }
+
+        .suggestion-item {
+            background: #f0f8ff;
+            border-left-color: #4CAF50;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .icon {
+            font-size: 1.1em;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 15px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Dark theme scrollbars for code areas */
+        .code-editor-container ::-webkit-scrollbar-track,
+        .result-code ::-webkit-scrollbar-track {
+            background: #2d2d2d;
+        }
+
+        .code-editor-container ::-webkit-scrollbar-thumb,
+        .result-code ::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+
+        .code-editor-container ::-webkit-scrollbar-thumb:hover,
+        .result-code ::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                max-width: 98vw;
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+            
+            .editor-section {
+                border-right: none;
+                border-bottom: 2px solid #e9ecef;
+                min-height: 500px;
+            }
+            
+            .results-section {
+                min-height: 600px;
+            }
+            
+            .diff-container {
+                grid-template-columns: 1fr;
+                max-height: 400px;
+            }
+            
+            .code-editor-container,
+            .single-view,
+            .result-code {
+                max-height: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            header {
+                padding: 15px;
+            }
+            
+            header h1 {
+                font-size: 1.6em;
+            }
+            
+            .samples-panel {
+                padding: 10px 15px;
+                gap: 8px;
+            }
+            
+            .editor-section, .results-section {
+                padding: 15px;
+            }
+            
+            .code-editor-container code[class*="language-"] {
+                font-size: 12px;
+                padding: 10px;
+            }
+            
+            .option-group {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .diff-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .view-toggle {
+                flex-direction: column;
+            }
+            
+            .samples-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .samples-panel select, .samples-panel button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐍 Python Code Refactor Tool</h1>
+            <p>Automatically improve your Python code with AI-powered refactoring</p>
+        </header>
+
+        <div class="samples-panel">
+            <label for="sampleSelector">Load Sample Code:</label>
+            <select id="sampleSelector">
+                <option value="">Choose a sample...</option>
+                <option value="complex_function">Complex Function</option>
+                <option value="nested_conditionals">Nested Conditionals</option>
+                <option value="duplicate_code">Duplicate Code</option>
+                <option value="messy_variables">Messy Variables</option>
+            </select>
+            <button onclick="loadSampleCode()">Load Sample</button>
+        </div>
+
+        <div class="keyboard-hints">
+            <strong>Keyboard Shortcuts:</strong> 
+            Ctrl+Enter = Refactor Code • 
+            Ctrl+/ = Focus Editor •
+            Esc = Clear Code
+        </div>
+
+        <div class="main-content">
+            <div class="editor-section">
+                <div class="section-title">
+                    <span class="icon">📝</span>
+                    <h2>Input Your Python Code</h2>
+                </div>
+                
+                <div class="code-editor-container">
+                    <pre><code class="language-python" id="codeInput" contenteditable="true">def process_data(x, y):
+    # Complex function that needs refactoring
+    a = x + y
+    b = x * y
+    if a > 10 and b < 50 and x != y and (x > 0 or y > 0):
+        result = a * b
+    else:
+        result = a / b
+    c = x + y  # Duplicate calculation
+    return result
+
+def another_function():
+    d = 5
+    e = 10
+    f = d + e
+    return f</code></pre>
+                </div>
+
+                <div class="options-panel">
+                    <div class="section-title">
+                        <span class="icon">⚙️</span>
+                        <h2>Refactoring Options</h2>
+                    </div>
+                    <div class="option-group">
+                        <label class="option-label">
+                            <input type="checkbox" name="refactorOptions" value="rename_variables" checked>
+                            <span>Rename Unclear Variables</span>
+                        </label>
+                        <label class="option-label">
+                            <input type="checkbox" name="refactorOptions" value="extract_duplicate" checked>
+                            <span>Extract Duplicate Code</span>
+                        </label>
+                        <label class="option-label">
+                            <input type="checkbox" name="refactorOptions" value="simplify_conditionals" checked>
+                            <span>Simplify Complex Conditionals</span>
+                        </label>
+                        <label class="option-label">
+                            <input type="checkbox" name="refactorOptions" value="extract_method">
+                            <span>Extract Methods</span>
+                        </label>
+                        <label class="option-label">
+                            <input type="checkbox" name="refactorOptions" value="remove_dead_code">
+                            <span>Remove Dead Code</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button class="refactor-btn" onclick="refactorCode()">
+                    🚀 Refactor Code
+                </button>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing and refactoring your code...</p>
+                </div>
+            </div>
+
+            <div class="results-section">
+                <div class="section-title">
+                    <span class="icon">✨</span>
+                    <h2>Refactored Results</h2>
+                </div>
+
+                <div class="view-toggle">
+                    <button id="singleViewBtn" class="active" onclick="toggleView('single')">Single View</button>
+                    <button id="diffViewBtn" onclick="toggleView('diff')">Diff View</button>
+                </div>
+
+                <div class="diff-container" id="diffContainer">
+                    <div class="diff-column">
+                        <h3>Original Code</h3>
+                        <div class="result-code">
+                            <pre><code class="language-python" id="originalCode"></code></pre>
+                        </div>
+                    </div>
+                    <div class="diff-column">
+                        <h3>Refactored Code</h3>
+                        <div class="result-code">
+                            <pre><code class="language-python" id="refactoredCode"></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="single-view" id="singleView">
+                    <div class="result-code">
+                        <pre><code class="language-python" id="codeOutput">Your refactored code will appear here...</code></pre>
+                    </div>
+                </div>
+
+                <div class="changes-section">
+                    <div class="section-title">
+                        <span class="icon">📋</span>
+                        <h2>Changes Made</h2>
+                    </div>
+                    <div id="changesList">
+                        <div class="change-item">No changes yet. Click "Refactor Code" to start!</div>
+                    </div>
+                </div>
+
+                <div class="suggestions-section">
+                    <div class="section-title">
+                        <span class="icon">💡</span>
+                        <h2>Improvement Suggestions</h2>
+                    </div>
+                    <div id="suggestionsList">
+                        <div class="suggestion-item">Suggestions will appear here after analysis.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample codes database
+        const SAMPLE_CODES = {
+            complex_function: `def process_data(items, threshold, modifier, validator, transformer):
+    results = []
+    for i in range(len(items)):
+        if validator(items[i]) and items[i].value > threshold:
+            transformed = transformer(modifier(items[i]))
+            if transformed.is_valid():
+                results.append(transformed)
+    return sorted(results, key=lambda x: x.priority, reverse=True)`,
+
+            nested_conditionals: `def calculate_discount(age, is_student, is_employee, purchase_amount, is_holiday):
+    discount = 0
+    if age < 18:
+        if is_student:
+            if purchase_amount > 100:
+                if is_holiday:
+                    discount = 25
+                else:
+                    discount = 20
+            else:
+                discount = 15
+        else:
+            discount = 10
+    elif age > 65:
+        discount = 15
+    else:
+        if is_employee:
+            discount = 30
+    return discount`,
+
+            duplicate_code: `def calculate_area_rectangle(width, height):
+    area = width * height
+    perimeter = 2 * (width + height)
+    return area, perimeter
+
+def calculate_area_square(side):
+    area = side * side
+    perimeter = 2 * (side + side)
+    return area, perimeter
+
+def calculate_area_triangle(base, height):
+    area = 0.5 * base * height
+    # Duplicate perimeter calculation logic
+    perimeter = 2 * (base + height)
+    return area, perimeter`,
+
+            messy_variables: `def p(a, b):
+    x = a + b
+    y = a * b
+    z = x - y
+    r = x / y if y != 0 else 0
+    return r
+
+def q(c, d):
+    m = c + d
+    n = c * d
+    o = m - n
+    s = m / n if n != 0 else 0
+    return s`
+        };
+
+        let currentView = 'single';
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            Prism.highlightAll();
+            setupKeyboardShortcuts();
+        });
+
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // Ctrl+Enter or Cmd+Enter to refactor
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    refactorCode();
+                }
+                
+                // Ctrl+/ to focus on code editor
+                if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+                    e.preventDefault();
+                    document.getElementById('codeInput').focus();
+                }
+                
+                // Esc to clear code
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    document.getElementById('codeInput').textContent = '';
+                    Prism.highlightAll();
+                }
+            });
+        }
+
+        function loadSampleCode() {
+            const selector = document.getElementById('sampleSelector');
+            const selectedSample = selector.value;
+            
+            if (selectedSample && SAMPLE_CODES[selectedSample]) {
+                document.getElementById('codeInput').textContent = SAMPLE_CODES[selectedSample];
+                Prism.highlightAll();
+            }
+        }
+
+        function toggleView(view) {
+            currentView = view;
+            const diffContainer = document.getElementById('diffContainer');
+            const singleView = document.getElementById('singleView');
+            const singleBtn = document.getElementById('singleViewBtn');
+            const diffBtn = document.getElementById('diffViewBtn');
+            
+            if (view === 'diff') {
+                diffContainer.style.display = 'grid';
+                singleView.style.display = 'none';
+                singleBtn.classList.remove('active');
+                diffBtn.classList.add('active');
+                
+                // Populate both sides if we have results
+                const originalCode = document.getElementById('codeInput').textContent;
+                const refactoredCode = document.getElementById('codeOutput').textContent;
+                
+                if (refactoredCode && !refactoredCode.includes('Your refactored code will appear here')) {
+                    document.getElementById('originalCode').textContent = originalCode;
+                    document.getElementById('refactoredCode').textContent = refactoredCode;
+                    Prism.highlightAll();
+                }
+            } else {
+                diffContainer.style.display = 'none';
+                singleView.style.display = 'block';
+                singleBtn.classList.add('active');
+                diffBtn.classList.remove('active');
+            }
+        }
+
+        async function refactorCode() {
+            const code = document.getElementById('codeInput').textContent;
+            const options = Array.from(document.querySelectorAll('input[name="refactorOptions"]:checked'))
+                                .map(checkbox => checkbox.value);
+            
+            if (!code.trim()) {
+                alert('Please enter some Python code to refactor.');
+                return;
+            }
+            
+            // Show loading
+            const loading = document.getElementById('loading');
+            const button = document.querySelector('.refactor-btn');
+            loading.style.display = 'block';
+            button.disabled = true;
+            button.textContent = 'Refactoring...';
+            
+            try {
+                const response = await fetch('/refactor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, refactor_options: options })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                // Display refactored code
+                document.getElementById('codeOutput').textContent = result.refactored_code;
+                
+                // Update diff view if active
+                if (currentView === 'diff') {
+                    document.getElementById('originalCode').textContent = code;
+                    document.getElementById('refactoredCode').textContent = result.refactored_code;
+                }
+                
+                // Display changes
+                const changesList = document.getElementById('changesList');
+                if (result.changes_made && result.changes_made.length > 0) {
+                    changesList.innerHTML = result.changes_made.map(change => 
+                        `<div class="change-item">${change}</div>`
+                    ).join('');
+                } else {
+                    changesList.innerHTML = '<div class="change-item">No changes were made with the selected options.</div>';
+                }
+                
+                // Display suggestions
+                const suggestionsList = document.getElementById('suggestionsList');
+                if (result.suggestions && result.suggestions.length > 0) {
+                    suggestionsList.innerHTML = result.suggestions.map(suggestion => 
+                        `<div class="suggestion-item">${suggestion}</div>`
+                    ).join('');
+                }
+                
+                // Re-highlight all code blocks
+                Prism.highlightAll();
+                
+            } catch (error) {
+                alert('Error refactoring code: ' + error.message);
+                console.error('Error:', error);
+            } finally {
+                // Hide loading
+                loading.style.display = 'none';
+                button.disabled = false;
+                button.textContent = '🚀 Refactor Code';
+            }
+        }
+    </script>
+</body>
+</html>
